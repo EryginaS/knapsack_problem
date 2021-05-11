@@ -1,7 +1,10 @@
 from openpyxl import load_workbook
 import pandas as pd
-import matplotlib as plt
+import matplotlib.pyplot as plt
 import seaborn as sns
+import phrases
+import os
+
 
 def xlsx_valid(xlsx_doc_name):
     """
@@ -29,9 +32,7 @@ def xlsx_valid(xlsx_doc_name):
                 try:
                     data[row[0]] = (int(row[1]), int(row[2]))
                 except ValueError:
-                    return None, False, 'В столбцах, где содержатся числовые данны, были указаны данные не числового типа.'
-
-        print(data)
+                    return None, False, phrases.valid_error_text1
         return data, True, 'success'
     else:
         return None, False, 'Формат файла неверный'
@@ -72,8 +73,9 @@ def get_memtable(stuffdict, A):
     return V, area, value
 
 
-def get_selected_items_list(stuffdict, A):
+def get_selected_items_list(stuffdict, A, path_to_save_fig):
     V, area, value = get_memtable(stuffdict, A)
+    create_map(V, stuffdict, path_to_save_fig)
     n = len(value)
     res = V[n][A]  # начинаем с последнего элемента таблицы
     a = A  # начальная площадь - максимальная
@@ -100,16 +102,17 @@ def get_selected_items_list(stuffdict, A):
 
     return selected_stuff
 
-# def create_map(V, stuffdict):
-#     plt.figure(figsize=(30, 15))
-#     item_list = list(stuffdict.keys())
-#     item_list.insert(0, 'empty')
-#     sns.heatmap(V, yticklabels=item_list)
-#     plt.yticks(size=25)
-#     plt.xlabel('Area', size=25)
-#     plt.ylabel('Added item', size=25)
-#     plt.title('Value for Area with Set of Items', size=30)
-#     plt.show()
+def create_map(V, stuffdict, path_to_save):
+
+    plt.figure(figsize=(30, 15))
+    item_list = list(stuffdict.keys())
+    item_list.insert(0, 'empty')
+    sns.heatmap(V, yticklabels=item_list)
+    plt.yticks(size=25)
+    plt.xlabel('Площадь или Вес', size=25)
+    plt.ylabel('Добавленная вещь', size=25)
+    plt.title('Ценность для площади\веса с набором элементов', size=30)
+    plt.savefig(os.path.join(path_to_save, 'mygraph.png'))
 
 
 def convert_result_task_to_xls(stuffdict, stuff):
