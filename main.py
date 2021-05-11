@@ -1,10 +1,8 @@
 import config
 import telebot
-from telebot import types
-import re
 import os
-import logging
-from bag_task import xlsx_valid
+import shutil
+from bag_task import xlsx_valid, get_selected_items_list, convert_result_task_to_xls
 
 from collections import defaultdict
 # сессии пользователей
@@ -24,10 +22,11 @@ keyboard1.row('Посмотреть пример')
 keyboard2 = telebot.types.ReplyKeyboardMarkup(True, True)
 keyboard2.row('Посмотреть пример')
 
-# отправка примера
-def send_doc_exemple(message):
-    f = open('exemples/exemple.xlsx', 'rb')
-    bot.send_document(message.chat.id, f, None)
+
+# отправка документа
+def send_doc_exemple(message, name_file, text):
+    f = open( name_file, 'rb')
+    bot.send_document(message.chat.id, f, text)
 
 
 # старт
@@ -40,7 +39,7 @@ def hello_message(message): # Название функции не играет 
 # отправка клавиатуры
 @bot.message_handler(commands=['help'], content_types=["text"])
 def repeat_all_messages(message): # Название функции не играет никакой роли
-    bot.send_message(message.chat.id, 'Правила пользования.', reply_markup=keyboard1)
+    bot.send_message(message.chat.id, config.help_text, reply_markup=keyboard1)
 
 # обработка текста
 @bot.message_handler(content_types=['text'])
@@ -68,7 +67,7 @@ def send_text(message):
                                               '\n Ожидается число (грузопоъемность в кг).')
     # отправит пример
     elif message.text.lower() == 'посмотреть пример':
-        send_doc_exemple(message)
+        send_doc_exemple(message, 'exemples/exemple.xlsx', 'Пример заполнения файла.')
 
     # если юзер должен был прислать документ априслал текс или хуй знает что
     elif users[message.chat.id]['state'] == 2:
@@ -106,13 +105,21 @@ def handle_docs_photo(message):
             users[message.chat.id]['file_name'] = src
             users[message.chat.id]['state'] = 3
             bot.reply_to(message, "Пожалуй, я сохраню это. \nПожалуйста подождите, ваша задача решается.")
-            # TODO: передать в вфункцию users[message.chat.id]['carrying_capacity'], users[message.chat.id]['data_from_doc']
-            # TODO: сообщение отпарвить
-            # TODO: удалять папку юзера
-            # TODO: статус юзера 0
+            print(users[message.chat.id]['data_from_doc'],
+                                            users[message.chat.id]['carrying_capacity'])
+
+            stuff = get_selected_items_list(users[message.chat.id]['data_from_doc'],
+                                            users[message.chat.id]['carrying_capacity'])
+            print(stuff)
+            df_for_answer = convert_result_task_to_xls(users[message.chat.id]['data_from_doc'],stuff)
+            path_to_doc_for_answer = os.path.join(name_dir, "output.xlsx")
+            df_for_answer.to_excel(path_to_doc_for_answer)
+            send_doc_exemple(message, path_to_doc_for_answer, 'Результаты вашей задачи')
+            shutil.rmtree(name_dir)
+            users[message.chat.id] =  {}
         else:
             bot.reply_to(message, f"Ваш файл не прошел валидацию! {mes}")
-            # TODO: удалять папку юзера
+            shutil.rmtree(name_dir)
     except Exception as e:
         bot.reply_to(message, e)
 
