@@ -3,7 +3,7 @@ import telebot
 import os
 import shutil
 import logging
-from bag_task import xlsx_valid, get_selected_items_list, convert_result_task_to_xls
+from logic import xlsx_valid, get_selected_items_list, convert_result_task_to_xls
 
 from collections import defaultdict
 import phrases
